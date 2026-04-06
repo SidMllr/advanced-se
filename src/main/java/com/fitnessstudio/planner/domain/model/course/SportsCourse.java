@@ -40,6 +40,19 @@ public class SportsCourse {
         return new SportsCourse(CourseId.generate(), name, category, description, maxParticipants);
     }
 
+    public void updateDescription(String description) {
+        Objects.requireNonNull(description, "Description must not be null");
+        this.description = description;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
     public CourseId getId() { return id; }
     public CourseName getName() { return name; }
     public CourseCategory getCategory() { return category; }
