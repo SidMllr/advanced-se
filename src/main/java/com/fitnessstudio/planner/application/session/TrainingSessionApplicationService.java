@@ -22,6 +22,7 @@ import com.fitnessstudio.planner.domain.service.SchedulingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -87,5 +88,36 @@ public class TrainingSessionApplicationService {
         return sessionRepository.findById(SessionId.of(id))
                 .map(SessionDto::from)
                 .orElseThrow(() -> new SessionNotFoundException(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SessionDto> getAllSessions() {
+        return sessionRepository.findAll().stream()
+                .map(SessionDto::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SessionDto> getSessionsByCourse(String courseId) {
+        courseRepository.findById(CourseId.of(courseId))
+                .orElseThrow(() -> new CourseNotFoundException(courseId));
+        return sessionRepository.findByCourseId(CourseId.of(courseId)).stream()
+                .map(SessionDto::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SessionDto> getSessionsByTrainer(String trainerId) {
+        trainerRepository.findById(TrainerId.of(trainerId))
+                .orElseThrow(() -> new TrainerNotFoundException(trainerId));
+        return sessionRepository.findByTrainerId(TrainerId.of(trainerId)).stream()
+                .map(SessionDto::from)
+                .toList();
+    }
+
+    public void deleteSession(String id) {
+        sessionRepository.findById(SessionId.of(id))
+                .orElseThrow(() -> new SessionNotFoundException(id));
+        sessionRepository.deleteById(SessionId.of(id));
     }
 }
