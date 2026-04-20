@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitnessstudio Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f6fa; }
+        .sidebar { min-height: 100vh; background: #1a1a2e; color: #eee; }
+        .sidebar .nav-link { color: #ccc; border-radius: 6px; margin: 2px 0; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #e94560; color: #fff; }
+        .sidebar .brand { font-size: 1.2rem; font-weight: 700; color: #fff; border-bottom: 1px solid #333; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .content-area { padding: 2rem; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+        .card-header { background: #fff; border-bottom: 1px solid #eee; border-radius: 12px 12px 0 0 !important; font-weight: 600; }
+        .badge-capacity { font-size: .75rem; }
+        .day-column { min-width: 130px; }
+        .session-card { font-size: .82rem; border-radius: 8px; padding: .4rem .6rem; margin-bottom: .4rem; color: #fff; cursor: pointer; }
+        .session-card.full { opacity: .7; }
+        .day-header { font-weight: 700; text-transform: uppercase; font-size: .75rem; letter-spacing: .05em; color: #888; padding: .4rem 0; border-bottom: 2px solid #e94560; margin-bottom: .6rem; }
+        .category-YOGA { background: #6c5ce7; }
+        .category-PILATES { background: #a29bfe; }
+        .category-HIIT { background: #e17055; }
+        .category-STRENGTH_TRAINING { background: #00b894; }
+        .category-CARDIO { background: #fdcb6e; color: #333 !important; }
+        .category-CYCLING { background: #0984e3; }
+        .category-SWIMMING { background: #00cec9; }
+        .category-DANCE { background: #fd79a8; }
+        .category-BOXING { background: #d63031; }
+        .category-REHABILITATION { background: #636e72; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .stat-card { border-radius: 12px; padding: 1.5rem; color: #fff; }
+        .empty-state { text-align: center; padding: 3rem; color: #aaa; }
+        .empty-state i { font-size: 3rem; display: block; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+<div class="d-flex">
+    <!-- Sidebar -->
+    <div class="sidebar p-3" style="width: 220px; position: fixed; top:0; bottom:0; overflow-y:auto; z-index:100;">
+        <div class="brand"><i class="bi bi-activity me-2"></i>Studio Planner</div>
+        <nav class="nav flex-column">
+            <a href="#" class="nav-link active" onclick="showPage('dashboard')"><i class="bi bi-grid me-2"></i>Dashboard</a>
+            <a href="#" class="nav-link" onclick="showPage('schedule')"><i class="bi bi-calendar3 me-2"></i>Wochenplan</a>
+            <a href="#" class="nav-link" onclick="showPage('courses')"><i class="bi bi-book me-2"></i>Sportkurse</a>
+            <a href="#" class="nav-link" onclick="showPage('sessions')"><i class="bi bi-clock me-2"></i>Trainingszeiten</a>
+            <a href="#" class="nav-link" onclick="showPage('trainers')"><i class="bi bi-person-badge me-2"></i>Trainer</a>
+            <a href="#" class="nav-link" onclick="showPage('rooms')"><i class="bi bi-door-open me-2"></i>Räume</a>
+            <a href="#" class="nav-link" onclick="showPage('members')"><i class="bi bi-people me-2"></i>Mitglieder</a>
+        </nav>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex-grow-1" style="margin-left: 220px;">
+        <div class="content-area">
+            <!-- Toast -->
+            <div class="position-fixed top-0 end-0 p-3" style="z-index:9999">
+                <div id="toast" class="toast" role="alert">
+                    <div class="toast-body" id="toast-body"></div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="page-dashboard" class="page active">
+                <h4 class="mb-4 fw-bold">Dashboard</h4>
+                <div class="row g-3 mb-4" id="stats-row">
+                    <div class="col-md-3"><div class="stat-card" style="background:#6c5ce7"><div class="fs-2 fw-bold" id="stat-courses">–</div><div>Sportkurse</div></div></div>
+                    <div class="col-md-3"><div class="stat-card" style="background:#e94560"><div class="fs-2 fw-bold" id="stat-sessions">–</div><div>Trainingszeiten</div></div></div>
+                    <div class="col-md-3"><div class="stat-card" style="background:#00b894"><div class="fs-2 fw-bold" id="stat-trainers">–</div><div>Trainer</div></div></div>
+                    <div class="col-md-3"><div class="stat-card" style="background:#0984e3"><div class="fs-2 fw-bold" id="stat-members">–</div><div>Mitglieder</div></div></div>
+                </div>
+                <div class="card"><div class="card-header">Nächste Kurstermine</div>
+                    <div class="card-body p-0"><div id="dashboard-sessions"></div></div>
+                </div>
+            </div>
+
+            <!-- SCHEDULE (Weekly calendar view) -->
+            <div id="page-schedule" class="page">
+                <h4 class="mb-4 fw-bold">Wochenplan</h4>
+                <div class="card"><div class="card-body">
+                    <div class="d-flex gap-3 overflow-auto" id="weekly-calendar" style="min-height:300px;"></div>
+                </div></div>
+            </div>
+
+            <!-- COURSES -->
+            <div id="page-courses" class="page">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Sportkurse</h4>
+                    <button class="btn btn-danger" onclick="openModal('modal-course')"><i class="bi bi-plus-lg me-1"></i>Kurs anlegen</button>
+                </div>
+                <div class="row g-3" id="courses-list"></div>
+            </div>
+
+            <!-- SESSIONS -->
+            <div id="page-sessions" class="page">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Trainingszeiten</h4>
+                    <button class="btn btn-danger" onclick="openModal('modal-session')"><i class="bi bi-plus-lg me-1"></i>Trainingszeit anlegen</button>
+                </div>
+                <div class="card"><div class="card-body p-0"><div id="sessions-table"></div></div></div>
+            </div>
+
+            <!-- TRAINERS -->
+            <div id="page-trainers" class="page">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Trainer</h4>
+                    <button class="btn btn-danger" onclick="openModal('modal-trainer')"><i class="bi bi-plus-lg me-1"></i>Trainer anlegen</button>
+                </div>
+                <div class="row g-3" id="trainers-list"></div>
+            </div>
+
+            <!-- ROOMS -->
+            <div id="page-rooms" class="page">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Räume</h4>
+                    <button class="btn btn-danger" onclick="openModal('modal-room')"><i class="bi bi-plus-lg me-1"></i>Raum anlegen</button>
+                </div>
+                <div class="row g-3" id="rooms-list"></div>
+            </div>
+
+            <!-- MEMBERS -->
+            <div id="page-members" class="page">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Mitglieder</h4>
+                    <button class="btn btn-danger" onclick="openModal('modal-member')"><i class="bi bi-plus-lg me-1"></i>Mitglied anlegen</button>
+                </div>
+                <div class="card"><div class="card-body p-0"><div id="members-table"></div></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Create Course -->
+<div class="modal fade" id="modal-course" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Sportkurs anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3"><label class="form-label">Kursname</label><input class="form-control" id="c-name" placeholder="z.B. Monday Yoga"></div>
+            <div class="mb-3"><label class="form-label">Kategorie</label>
+                <select class="form-select" id="c-category">
+                    <option value="YOGA">Yoga</option><option value="PILATES">Pilates</option>
+                    <option value="HIIT">HIIT</option><option value="STRENGTH_TRAINING">Krafttraining</option>
+                    <option value="CARDIO">Cardio</option><option value="CYCLING">Cycling</option>
+                    <option value="SWIMMING">Schwimmen</option><option value="DANCE">Tanzen</option>
+                    <option value="BOXING">Boxen</option><option value="REHABILITATION">Rehabilitation</option>
+                </select>
+            </div>
+            <div class="mb-3"><label class="form-label">Beschreibung</label><textarea class="form-control" id="c-desc" rows="2"></textarea></div>
+            <div class="mb-3"><label class="form-label">Max. Teilnehmer</label><input class="form-control" type="number" id="c-max" value="15" min="1"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button><button class="btn btn-danger" onclick="createCourse()">Anlegen</button></div>
+    </div></div>
+</div>
+
+<!-- Create Trainer -->
+<div class="modal fade" id="modal-trainer" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Trainer anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="t-name" placeholder="Vollständiger Name"></div>
+            <div class="mb-3"><label class="form-label">Qualifikationen (kommagetrennt)</label><input class="form-control" id="t-quals" placeholder="z.B. Certified Yoga Instructor, B-Lizenz"></div>
+            <div class="mb-3"><label class="form-label">E-Mail</label><input class="form-control" type="email" id="t-email" placeholder="trainer@example.com"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button><button class="btn btn-danger" onclick="createTrainer()">Anlegen</button></div>
+    </div></div>
+</div>
+
+<!-- Create Room -->
+<div class="modal fade" id="modal-room" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Raum anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3"><label class="form-label">Raumname</label><input class="form-control" id="r-name" placeholder="z.B. Kursraum 1"></div>
+            <div class="mb-3"><label class="form-label">Kapazität</label><input class="form-control" type="number" id="r-cap" value="20" min="1"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button><button class="btn btn-danger" onclick="createRoom()">Anlegen</button></div>
+    </div></div>
+</div>
+
+<!-- Create Member -->
+<div class="modal fade" id="modal-member" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Mitglied anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="m-name" placeholder="Vollständiger Name"></div>
+            <div class="mb-3"><label class="form-label">E-Mail</label><input class="form-control" type="email" id="m-email" placeholder="mitglied@example.com"></div>
+            <div class="mb-3"><label class="form-label">Telefon (optional)</label><input class="form-control" id="m-phone" placeholder="+49 ..."></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button><button class="btn btn-danger" onclick="createMember()">Anlegen</button></div>
+    </div></div>
+</div>
+
+<!-- Create Session -->
+<div class="modal fade" id="modal-session" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Trainingszeit anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3"><label class="form-label">Sportkurs</label><select class="form-select" id="s-course"></select></div>
+            <div class="mb-3"><label class="form-label">Trainer</label><select class="form-select" id="s-trainer"></select></div>
+            <div class="mb-3"><label class="form-label">Raum</label><select class="form-select" id="s-room"></select></div>
+            <div class="row">
+                <div class="col mb-3"><label class="form-label">Wochentag</label>
+                    <select class="form-select" id="s-day">
+                        <option value="MONDAY">Montag</option><option value="TUESDAY">Dienstag</option>
+                        <option value="WEDNESDAY">Mittwoch</option><option value="THURSDAY">Donnerstag</option>
+                        <option value="FRIDAY">Freitag</option><option value="SATURDAY">Samstag</option>
+                        <option value="SUNDAY">Sonntag</option>
+                    </select>
+                </div>
+                <div class="col mb-3"><label class="form-label">Uhrzeit</label><input class="form-control" type="time" id="s-time" value="10:00"></div>
+                <div class="col mb-3"><label class="form-label">Dauer (Min.)</label><input class="form-control" type="number" id="s-dur" value="60" min="15" step="15"></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button><button class="btn btn-danger" onclick="createSession()">Anlegen</button></div>
+    </div></div>
+</div>
+
+<!-- Enroll Modal -->
+<div class="modal fade" id="modal-enroll" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Zu Kurs anmelden</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <p id="enroll-session-info" class="text-muted small mb-3"></p>
+            <div class="mb-3"><label class="form-label">Mitglied auswählen</label><select class="form-select" id="enroll-member"></select></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button><button class="btn btn-success" onclick="doEnroll()">Anmelden</button></div>
+    </div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const API = '/api';
+let state = { courses: [], sessions: [], trainers: [], rooms: [], members: [] };
+let currentEnrollSessionId = null;
+
+const DAY_DE = { MONDAY:'Montag', TUESDAY:'Dienstag', WEDNESDAY:'Mittwoch',
+    THURSDAY:'Donnerstag', FRIDAY:'Freitag', SATURDAY:'Samstag', SUNDAY:'Sonntag' };
+const DAY_ORDER = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
+
+// ── Navigation ──────────────────────────────────────────────────────────────
+function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+    loadPage(name);
+}
+
+function loadPage(name) {
+    if (name === 'dashboard') loadDashboard();
+    else if (name === 'schedule') loadSchedule();
+    else if (name === 'courses') loadCourses();
+    else if (name === 'sessions') loadSessions();
+    else if (name === 'trainers') loadTrainers();
+    else if (name === 'rooms') loadRooms();
+    else if (name === 'members') loadMembers();
+}
+
+// ── API helpers ──────────────────────────────────────────────────────────────
+async function get(path) {
+    const r = await fetch(API + path);
+    return r.ok ? r.json() : [];
+}
+async function post(path, body) {
+    const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast(e.detail || 'Fehler', 'danger'); return null; }
+    return r.json();
+}
+async function del(path) {
+    await fetch(API + path, { method: 'DELETE' });
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.className = `toast align-items-center text-bg-${type} border-0`;
+    document.getElementById('toast-body').textContent = msg;
+    new bootstrap.Toast(el, { delay: 3000 }).show();
+}
+
+// ── Modal helpers ────────────────────────────────────────────────────────────
+function openModal(id) {
+    if (id === 'modal-session') populateSessionSelects();
+    new bootstrap.Modal(document.getElementById(id)).show();
+}
+function closeModal(id) { bootstrap.Modal.getInstance(document.getElementById(id))?.hide(); }
+
+// ── Lookup helpers ───────────────────────────────────────────────────────────
+function courseName(id) { return state.courses.find(c => c.id === id)?.name || id; }
+function trainerName(id) { return state.trainers.find(t => t.id === id)?.name || id; }
+function roomName(id) { return state.rooms.find(r => r.id === id)?.name || id; }
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+    const [courses, sessions, trainers, members] = await Promise.all([
+        get('/courses'), get('/sessions'), get('/trainers'), get('/members')
+    ]);
+    state = { ...state, courses, sessions, trainers, members };
+    document.getElementById('stat-courses').textContent = courses.length;
+    document.getElementById('stat-sessions').textContent = sessions.length;
+    document.getElementById('stat-trainers').textContent = trainers.length;
+    document.getElementById('stat-members').textContent = members.length;
+
+    const sorted = [...sessions].sort((a,b) => DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek)
+        || a.startTime.localeCompare(b.startTime));
+    const el = document.getElementById('dashboard-sessions');
+    if (!sorted.length) { el.innerHTML = '<div class="empty-state"><i class="bi bi-calendar-x"></i>Noch keine Trainingszeiten</div>'; return; }
+    el.innerHTML = `<table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Tag</th><th>Uhrzeit</th><th>Kurs</th><th>Trainer</th><th>Raum</th><th>Belegung</th><th></th></tr></thead>
+        <tbody>${sorted.map(s => `<tr>
+            <td>${DAY_DE[s.dayOfWeek]}</td>
+            <td>${s.startTime} (${s.durationMinutes} Min.)</td>
+            <td><span class="badge session-card category-${courseCat(s.courseId)} me-1"></span>${courseName(s.courseId)}</td>
+            <td>${trainerName(s.trainerId)}</td>
+            <td>${roomName(s.roomId)}</td>
+            <td><span class="badge ${s.enrollmentCount >= s.maxParticipants ? 'bg-danger' : 'bg-success'}">${s.enrollmentCount}/${s.maxParticipants}</span>${s.waitlistSize ? ` <span class="badge bg-warning text-dark">+${s.waitlistSize} Warteliste</span>` : ''}</td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick="openEnroll('${s.id}','${s.courseId}','${s.dayOfWeek}','${s.startTime}')">Anmelden</button></td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+function courseCat(courseId) { return state.courses.find(c => c.id === courseId)?.category || ''; }
+
+// ── Schedule (weekly calendar) ───────────────────────────────────────────────
+async function loadSchedule() {
+    const [courses, sessions, trainers, rooms] = await Promise.all([
+        get('/courses'), get('/sessions'), get('/trainers'), get('/rooms')
+    ]);
+    state = { ...state, courses, sessions, trainers, rooms };
+    const cal = document.getElementById('weekly-calendar');
+    cal.innerHTML = '';
+    for (const day of DAY_ORDER) {
+        const daySessions = sessions.filter(s => s.dayOfWeek === day)
+            .sort((a,b) => a.startTime.localeCompare(b.startTime));
+        const col = document.createElement('div');
+        col.className = 'day-column flex-grow-1';
+        col.innerHTML = `<div class="day-header">${DAY_DE[day]}</div>` +
+            (daySessions.length ? daySessions.map(s => `
+                <div class="session-card category-${courseCat(s.courseId)} ${s.enrollmentCount >= s.maxParticipants ? 'full' : ''}"
+                     onclick="openEnroll('${s.id}','${s.courseId}','${s.dayOfWeek}','${s.startTime}')">
+                    <div class="fw-bold">${s.startTime}</div>
+                    <div>${courseName(s.courseId)}</div>
+                    <div class="opacity-75">${trainerName(s.trainerId)}</div>
+                    <div class="opacity-75">${s.enrollmentCount}/${s.maxParticipants} Plätze${s.waitlistSize ? ` · +${s.waitlistSize} Warteliste` : ''}</div>
+                </div>`).join('') : '<div class="text-muted small">Kein Kurs</div>');
+        cal.appendChild(col);
+    }
+}
+
+// ── Courses ──────────────────────────────────────────────────────────────────
+async function loadCourses() {
+    state.courses = await get('/courses');
+    const el = document.getElementById('courses-list');
+    if (!state.courses.length) { el.innerHTML = '<div class="col-12"><div class="empty-state"><i class="bi bi-book"></i>Noch keine Sportkurse</div></div>'; return; }
+    el.innerHTML = state.courses.map(c => `
+        <div class="col-md-4"><div class="card h-100">
+            <div class="card-body">
+                <span class="badge session-card category-${c.category} mb-2">${c.category.replace('_',' ')}</span>
+                <h6 class="fw-bold">${c.name}</h6>
+                <p class="text-muted small mb-2">${c.description}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-light text-dark"><i class="bi bi-people me-1"></i>Max. ${c.maxParticipants}</span>
+                    <span class="badge ${c.active ? 'bg-success' : 'bg-secondary'}">${c.active ? 'Aktiv' : 'Inaktiv'}</span>
+                </div>
+            </div>
+        </div></div>`).join('');
+}
+
+async function createCourse() {
+    const body = { name: val('c-name'), category: val('c-category'), description: val('c-desc'), maxParticipants: +val('c-max') };
+    const r = await post('/courses', body);
+    if (r) { toast('Kurs angelegt!'); closeModal('modal-course'); loadCourses(); }
+}
+
+// ── Sessions ─────────────────────────────────────────────────────────────────
+async function loadSessions() {
+    const [courses, sessions, trainers, rooms] = await Promise.all([
+        get('/courses'), get('/sessions'), get('/trainers'), get('/rooms')
+    ]);
+    state = { ...state, courses, sessions, trainers, rooms };
+    const el = document.getElementById('sessions-table');
+    if (!sessions.length) { el.innerHTML = '<div class="empty-state"><i class="bi bi-clock"></i>Noch keine Trainingszeiten</div>'; return; }
+    const sorted = [...sessions].sort((a,b) => DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek) || a.startTime.localeCompare(b.startTime));
+    el.innerHTML = `<table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Tag</th><th>Uhrzeit</th><th>Dauer</th><th>Kurs</th><th>Trainer</th><th>Raum</th><th>Belegung</th><th></th></tr></thead>
+        <tbody>${sorted.map(s => `<tr>
+            <td>${DAY_DE[s.dayOfWeek]}</td><td>${s.startTime}</td><td>${s.durationMinutes} Min.</td>
+            <td>${courseName(s.courseId)}</td><td>${trainerName(s.trainerId)}</td><td>${roomName(s.roomId)}</td>
+            <td><span class="badge ${s.enrollmentCount >= s.maxParticipants ? 'bg-danger' : 'bg-success'}">${s.enrollmentCount}/${s.maxParticipants}</span>${s.waitlistSize ? ` <small class="text-warning">+${s.waitlistSize}</small>` : ''}</td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick="openEnroll('${s.id}','${s.courseId}','${s.dayOfWeek}','${s.startTime}')">Anmelden</button></td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+async function populateSessionSelects() {
+    const [courses, trainers, rooms] = await Promise.all([get('/courses?activeOnly=true'), get('/trainers'), get('/rooms')]);
+    state = { ...state, courses, trainers, rooms };
+    document.getElementById('s-course').innerHTML = courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('s-trainer').innerHTML = trainers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    document.getElementById('s-room').innerHTML = rooms.map(r => `<option value="${r.id}">${r.name} (${r.capacity} Pl.)</option>`).join('');
+}
+
+async function createSession() {
+    const time = val('s-time');
+    const body = { courseId: val('s-course'), trainerId: val('s-trainer'), roomId: val('s-room'),
+        dayOfWeek: val('s-day'), startTime: time + ':00', durationMinutes: +val('s-dur') };
+    const r = await post('/sessions', body);
+    if (r) { toast('Trainingszeit angelegt!'); closeModal('modal-session'); loadSessions(); }
+}
+
+// ── Trainers ──────────────────────────────────────────────────────────────────
+async function loadTrainers() {
+    state.trainers = await get('/trainers');
+    const el = document.getElementById('trainers-list');
+    if (!state.trainers.length) { el.innerHTML = '<div class="col-12"><div class="empty-state"><i class="bi bi-person-badge"></i>Noch keine Trainer</div></div>'; return; }
+    el.innerHTML = state.trainers.map(t => `
+        <div class="col-md-4"><div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold"><i class="bi bi-person-circle me-2 text-danger"></i>${t.name}</h6>
+            ${t.contactEmail ? `<div class="text-muted small mb-2"><i class="bi bi-envelope me-1"></i>${t.contactEmail}</div>` : ''}
+            ${t.qualifications?.length ? `<div>${t.qualifications.map(q => `<span class="badge bg-light text-dark me-1 mb-1">${q}</span>`).join('')}</div>` : ''}
+        </div></div></div>`).join('');
+}
+
+async function createTrainer() {
+    const quals = val('t-quals').split(',').map(q => q.trim()).filter(Boolean);
+    const body = { name: val('t-name'), qualifications: quals, contactEmail: val('t-email') || null };
+    const r = await post('/trainers', body);
+    if (r) { toast('Trainer angelegt!'); closeModal('modal-trainer'); loadTrainers(); }
+}
+
+// ── Rooms ─────────────────────────────────────────────────────────────────────
+async function loadRooms() {
+    state.rooms = await get('/rooms');
+    const el = document.getElementById('rooms-list');
+    if (!state.rooms.length) { el.innerHTML = '<div class="col-12"><div class="empty-state"><i class="bi bi-door-open"></i>Noch keine Räume</div></div>'; return; }
+    el.innerHTML = state.rooms.map(r => `
+        <div class="col-md-3"><div class="card text-center h-100"><div class="card-body">
+            <i class="bi bi-door-open fs-2 text-danger mb-2"></i>
+            <h6 class="fw-bold">${r.name}</h6>
+            <span class="badge bg-light text-dark"><i class="bi bi-people me-1"></i>${r.capacity} Plätze</span>
+        </div></div></div>`).join('');
+}
+
+async function createRoom() {
+    const r = await post('/rooms', { name: val('r-name'), capacity: +val('r-cap') });
+    if (r) { toast('Raum angelegt!'); closeModal('modal-room'); loadRooms(); }
+}
+
+// ── Members ────────────────────────────────────────────────────────────────────
+async function loadMembers() {
+    state.members = await get('/members');
+    const el = document.getElementById('members-table');
+    if (!state.members.length) { el.innerHTML = '<div class="empty-state"><i class="bi bi-people"></i>Noch keine Mitglieder</div>'; return; }
+    el.innerHTML = `<table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Name</th><th>E-Mail</th><th>Telefon</th></tr></thead>
+        <tbody>${state.members.map(m => `<tr><td>${m.name}</td><td>${m.email}</td><td>${m.phoneNumber || '–'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+async function createMember() {
+    const body = { name: val('m-name'), email: val('m-email'), phoneNumber: val('m-phone') || null };
+    const r = await post('/members', body);
+    if (r) { toast('Mitglied angelegt!'); closeModal('modal-member'); loadMembers(); }
+}
+
+// ── Enrollment ────────────────────────────────────────────────────────────────
+function openEnroll(sessionId, courseId, day, time) {
+    currentEnrollSessionId = sessionId;
+    document.getElementById('enroll-session-info').textContent =
+        `${courseName(courseId)} · ${DAY_DE[day]} ${time}`;
+    document.getElementById('enroll-member').innerHTML =
+        state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    new bootstrap.Modal(document.getElementById('modal-enroll')).show();
+}
+
+async function doEnroll() {
+    const memberId = val('enroll-member');
+    const r = await fetch(`${API}/sessions/${currentEnrollSessionId}/enrollments?memberId=${memberId}`, { method: 'POST' });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+        const enrolled = data.enrollmentCount > (data.enrollmentCount - 1);
+        toast(`Erfolgreich angemeldet! Belegung: ${data.enrollmentCount}/${data.maxParticipants}${data.waitlistSize ? ' · Warteliste: ' + data.waitlistSize : ''}`);
+        closeModal('modal-enroll');
+        loadPage(document.querySelector('.page.active').id.replace('page-', ''));
+    } else { toast(data.detail || 'Fehler bei der Anmeldung', 'danger'); }
+}
+
+// ── Util ──────────────────────────────────────────────────────────────────────
+function val(id) { return document.getElementById(id).value; }
+
+// Init
+loadDashboard();
+</script>
+</html>
