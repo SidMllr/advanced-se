@@ -50,6 +50,38 @@ public class EnrollmentApplicationService {
         return SessionDto.from(sessionRepository.save(session));
     }
 
+    public SessionDto cancelEnrollment(String sessionId, String memberId) {
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(memberId);
+
+        TrainingSession session = findSessionOrThrow(sessionId);
+        MemberId memberIdObj = MemberId.of(memberId);
+
+        try {
+            enrollmentDomainService.cancelEnrollment(session, memberIdObj);
+        } catch (IllegalStateException e) {
+            throw new EnrollmentException(e.getMessage());
+        }
+
+        return SessionDto.from(sessionRepository.save(session));
+    }
+
+    public SessionDto cancelWaitlistEntry(String sessionId, String memberId) {
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(memberId);
+
+        TrainingSession session = findSessionOrThrow(sessionId);
+        MemberId memberIdObj = MemberId.of(memberId);
+
+        try {
+            enrollmentDomainService.cancelWaitlistEntry(session, memberIdObj);
+        } catch (IllegalStateException e) {
+            throw new EnrollmentException(e.getMessage());
+        }
+
+        return SessionDto.from(sessionRepository.save(session));
+    }
+
     private TrainingSession findSessionOrThrow(String id) {
         return sessionRepository.findById(SessionId.of(id))
                 .orElseThrow(() -> new SessionNotFoundException(id));
