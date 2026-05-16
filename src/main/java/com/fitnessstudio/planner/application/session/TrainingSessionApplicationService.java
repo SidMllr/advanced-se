@@ -50,19 +50,12 @@ public class TrainingSessionApplicationService {
     public SessionDto createSession(CreateSessionCommand command) {
         Objects.requireNonNull(command, "Command must not be null");
 
-        CourseId courseId = CourseId.of(command.courseId());
+        SportsCourse course = loadCourse(command.courseId());
+        loadTrainer(command.trainerId());
+        loadRoom(command.roomId());
+
         TrainerId trainerId = TrainerId.of(command.trainerId());
         RoomId roomId = RoomId.of(command.roomId());
-
-        SportsCourse course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new CourseNotFoundException(command.courseId()));
-
-        trainerRepository.findById(trainerId)
-                .orElseThrow(() -> new TrainerNotFoundException(command.trainerId()));
-
-        roomRepository.findById(roomId)
-                .orElseThrow(() -> new RoomNotFoundException(command.roomId()));
-
         TimeSlot timeSlot = TimeSlot.of(command.dayOfWeek(), command.startTime(), command.durationMinutes());
 
         try {
@@ -73,7 +66,7 @@ public class TrainingSessionApplicationService {
 
         TrainingSession session = TrainingSession.builder()
                 .id(SessionId.generate())
-                .courseId(courseId)
+                .courseId(CourseId.of(command.courseId()))
                 .trainerId(trainerId)
                 .roomId(roomId)
                 .timeSlot(timeSlot)
@@ -119,5 +112,20 @@ public class TrainingSessionApplicationService {
         sessionRepository.findById(SessionId.of(id))
                 .orElseThrow(() -> new SessionNotFoundException(id));
         sessionRepository.deleteById(SessionId.of(id));
+    }
+
+    private SportsCourse loadCourse(String courseId) {
+        return courseRepository.findById(CourseId.of(courseId))
+                .orElseThrow(() -> new CourseNotFoundException(courseId));
+    }
+
+    private void loadTrainer(String trainerId) {
+        trainerRepository.findById(TrainerId.of(trainerId))
+                .orElseThrow(() -> new TrainerNotFoundException(trainerId));
+    }
+
+    private void loadRoom(String roomId) {
+        roomRepository.findById(RoomId.of(roomId))
+                .orElseThrow(() -> new RoomNotFoundException(roomId));
     }
 }

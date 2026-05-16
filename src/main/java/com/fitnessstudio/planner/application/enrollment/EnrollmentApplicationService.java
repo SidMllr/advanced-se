@@ -31,18 +31,18 @@ public class EnrollmentApplicationService {
         this.enrollmentDomainService = Objects.requireNonNull(enrollmentDomainService);
     }
 
-    public SessionDto enroll(String sessionId, String memberId) {
+    public SessionDto enroll(String sessionId, String rawMemberId) {
         Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(memberId);
+        Objects.requireNonNull(rawMemberId);
 
         TrainingSession session = findSessionOrThrow(sessionId);
-        MemberId memberIdObj = MemberId.of(memberId);
+        MemberId memberId = MemberId.of(rawMemberId);
 
-        memberRepository.findById(memberIdObj)
-                .orElseThrow(() -> new MemberNotFoundException(memberId));
+        memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException(rawMemberId));
 
         try {
-            enrollmentDomainService.enrollMember(session, memberIdObj);
+            enrollmentDomainService.enrollMember(session, memberId);
         } catch (IllegalStateException e) {
             throw new EnrollmentException(e.getMessage());
         }
@@ -50,15 +50,15 @@ public class EnrollmentApplicationService {
         return SessionDto.from(sessionRepository.save(session));
     }
 
-    public SessionDto cancelEnrollment(String sessionId, String memberId) {
+    public SessionDto cancelEnrollment(String sessionId, String rawMemberId) {
         Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(memberId);
+        Objects.requireNonNull(rawMemberId);
 
         TrainingSession session = findSessionOrThrow(sessionId);
-        MemberId memberIdObj = MemberId.of(memberId);
+        MemberId memberId = MemberId.of(rawMemberId);
 
         try {
-            enrollmentDomainService.cancelEnrollment(session, memberIdObj);
+            enrollmentDomainService.cancelEnrollment(session, memberId);
         } catch (IllegalStateException e) {
             throw new EnrollmentException(e.getMessage());
         }
@@ -66,15 +66,15 @@ public class EnrollmentApplicationService {
         return SessionDto.from(sessionRepository.save(session));
     }
 
-    public SessionDto cancelWaitlistEntry(String sessionId, String memberId) {
+    public SessionDto cancelWaitlistEntry(String sessionId, String rawMemberId) {
         Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(memberId);
+        Objects.requireNonNull(rawMemberId);
 
         TrainingSession session = findSessionOrThrow(sessionId);
-        MemberId memberIdObj = MemberId.of(memberId);
+        MemberId memberId = MemberId.of(rawMemberId);
 
         try {
-            enrollmentDomainService.cancelWaitlistEntry(session, memberIdObj);
+            enrollmentDomainService.cancelWaitlistEntry(session, memberId);
         } catch (IllegalStateException e) {
             throw new EnrollmentException(e.getMessage());
         }
